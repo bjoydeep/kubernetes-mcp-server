@@ -27,6 +27,10 @@ func initPods() []api.ServerTool {
 						Description: "Optional Kubernetes label selector (e.g. 'app=myapp,env=prod' or 'app in (myapp,yourapp)'), use this option when you want to filter the pods by label",
 						Pattern:     "([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]",
 					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
+					},
 				},
 			},
 			Annotations: api.ToolAnnotations{
@@ -51,6 +55,10 @@ func initPods() []api.ServerTool {
 						Type:        "string",
 						Description: "Optional Kubernetes label selector (e.g. 'app=myapp,env=prod' or 'app in (myapp,yourapp)'), use this option when you want to filter the pods by label",
 						Pattern:     "([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]",
+					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
 					},
 				},
 				Required: []string{"namespace"},
@@ -77,6 +85,10 @@ func initPods() []api.ServerTool {
 						Type:        "string",
 						Description: "Name of the Pod",
 					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
+					},
 				},
 				Required: []string{"name"},
 			},
@@ -101,6 +113,10 @@ func initPods() []api.ServerTool {
 					"name": {
 						Type:        "string",
 						Description: "Name of the Pod to delete",
+					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
 					},
 				},
 				Required: []string{"name"},
@@ -137,6 +153,10 @@ func initPods() []api.ServerTool {
 						Description: "Kubernetes label selector (e.g. 'app=myapp,env=prod' or 'app in (myapp,yourapp)'), use this option when you want to filter the pods by label (Optional, only applicable when name is not provided)",
 						Pattern:     "([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]",
 					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
+					},
 				},
 			},
 			Annotations: api.ToolAnnotations{
@@ -171,6 +191,10 @@ func initPods() []api.ServerTool {
 					"container": {
 						Type:        "string",
 						Description: "Name of the Pod container where the command will be executed (Optional)",
+					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
 					},
 				},
 				Required: []string{"name", "command"},
@@ -211,6 +235,10 @@ func initPods() []api.ServerTool {
 						Type:        "boolean",
 						Description: "Return previous terminated container logs (Optional)",
 					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
+					},
 				},
 				Required: []string{"name"},
 			},
@@ -243,6 +271,10 @@ func initPods() []api.ServerTool {
 					"port": {
 						Type:        "number",
 						Description: "TCP/IP port to expose from the Pod container (Optional, no port exposed if not provided)",
+					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
 					},
 				},
 				Required: []string{"image"},

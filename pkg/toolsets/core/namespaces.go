@@ -19,6 +19,12 @@ func initNamespaces(o internalk8s.Openshift) []api.ServerTool {
 			Description: "List all the Kubernetes namespaces in the current cluster",
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
+				Properties: map[string]*jsonschema.Schema{
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
+					},
+				},
 			},
 			Annotations: api.ToolAnnotations{
 				Title:           "Namespaces: List",
@@ -36,6 +42,12 @@ func initNamespaces(o internalk8s.Openshift) []api.ServerTool {
 				Description: "List all the OpenShift projects in the current cluster",
 				InputSchema: &jsonschema.Schema{
 					Type: "object",
+					Properties: map[string]*jsonschema.Schema{
+						"cluster": {
+							Type:        "string",
+							Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
+						},
+					},
 				},
 				Annotations: api.ToolAnnotations{
 					Title:           "Projects: List",

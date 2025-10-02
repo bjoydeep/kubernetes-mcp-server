@@ -24,6 +24,12 @@ type StaticConfig struct {
 	EnabledTools       []string `toml:"enabled_tools,omitempty"`
 	DisabledTools      []string `toml:"disabled_tools,omitempty"`
 
+	// ACM multi-cluster configuration
+	// When true, enable ACM multi-cluster mode with cluster-proxy support
+	ACMMode bool `toml:"acm_mode,omitempty"`
+	// When true, auto-detect ACM environment by checking for ManagedCluster CRDs
+	ACMAutoDetect bool `toml:"acm_auto_detect,omitempty"`
+
 	// Authorization-related fields
 	// RequireOAuth indicates whether the server requires OAuth for authentication.
 	RequireOAuth bool `toml:"require_oauth,omitempty"`
@@ -53,8 +59,9 @@ type StaticConfig struct {
 
 func Default() *StaticConfig {
 	return &StaticConfig{
-		ListOutput: "table",
-		Toolsets:   []string{"core", "config", "helm"},
+		ListOutput:    "table",
+		Toolsets:      []string{"core", "config", "helm"},
+		ACMAutoDetect: true, // Auto-detect ACM environment by default
 	}
 }
 

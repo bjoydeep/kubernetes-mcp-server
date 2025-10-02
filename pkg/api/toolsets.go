@@ -46,6 +46,9 @@ type ToolHandlerParams struct {
 	*internalk8s.Kubernetes
 	ToolCallRequest
 	ListOutput output.Output
+	// Multi-cluster support
+	ACMProxyClient interface{} // ACM proxy client for multi-cluster operations
+	IsACMMode      bool        // Whether ACM multi-cluster mode is enabled
 }
 
 type ToolHandlerFunc func(params ToolHandlerParams) (*ToolCallResult, error)
@@ -85,6 +88,25 @@ type ToolAnnotations struct {
 	// false, the tool's domain of interaction is closed. For example, the world of
 	// a web search tool is open, whereas that of a memory tool is not.
 	OpenWorldHint *bool `json:"openWorldHint,omitempty"`
+}
+
+// GetClusterParameter extracts the optional cluster parameter from tool arguments
+func GetClusterParameter(params ToolHandlerParams) (string, bool) {
+	args := params.GetArguments()
+	if cluster, exists := args["cluster"]; exists {
+		if clusterStr, ok := cluster.(string); ok && clusterStr != "" {
+			return clusterStr, true
+		}
+	}
+	return "", false
+}
+
+// ShouldUseACMProxy returns true if the request should be routed through ACM proxy
+func ShouldUseACMProxy(params ToolHandlerParams) (string, bool) {
+	if !params.IsACMMode || params.ACMProxyClient == nil {
+		return "", false
+	}
+	return GetClusterParameter(params)
 }
 
 func ToRawMessage(v any) json.RawMessage {

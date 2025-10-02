@@ -22,6 +22,10 @@ func initEvents() []api.ServerTool {
 						Type:        "string",
 						Description: "Optional Namespace to retrieve the events from. If not provided, will list events from all namespaces",
 					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
+					},
 				},
 			},
 			Annotations: api.ToolAnnotations{

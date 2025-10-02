@@ -25,6 +25,10 @@ func initConfiguration() []api.ServerTool {
 							"If set to false, all contexts, clusters, auth-infos, and users are returned in the configuration. " +
 							"(Optional, default true)",
 					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
+					},
 				},
 			},
 			Annotations: api.ToolAnnotations{

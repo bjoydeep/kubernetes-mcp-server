@@ -23,7 +23,7 @@ func initResources(o internalk8s.Openshift) []api.ServerTool {
 	return []api.ServerTool{
 		{Tool: api.Tool{
 			Name:        "resources_list",
-			Description: "List Kubernetes resources and objects in the current cluster by providing their apiVersion and kind and optionally the namespace and label selector\n" + commonApiVersion,
+			Description: "List Kubernetes resources and objects in the current cluster or managed cluster by providing their apiVersion and kind and optionally the namespace, cluster, and label selector\n" + commonApiVersion,
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -44,6 +44,10 @@ func initResources(o internalk8s.Openshift) []api.ServerTool {
 						Description: "Optional Kubernetes label selector (e.g. 'app=myapp,env=prod' or 'app in (myapp,yourapp)'), use this option when you want to filter the pods by label",
 						Pattern:     "([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]",
 					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
+					},
 				},
 				Required: []string{"apiVersion", "kind"},
 			},
@@ -57,7 +61,7 @@ func initResources(o internalk8s.Openshift) []api.ServerTool {
 		}, Handler: resourcesList},
 		{Tool: api.Tool{
 			Name:        "resources_get",
-			Description: "Get a Kubernetes resource in the current cluster by providing its apiVersion, kind, optionally the namespace, and its name\n" + commonApiVersion,
+			Description: "Get a Kubernetes resource in the current cluster or managed cluster by providing its apiVersion, kind, optionally the namespace and cluster, and its name\n" + commonApiVersion,
 			InputSchema: &jsonschema.Schema{
 				Type: "object",
 				Properties: map[string]*jsonschema.Schema{
@@ -76,6 +80,10 @@ func initResources(o internalk8s.Openshift) []api.ServerTool {
 					"name": {
 						Type:        "string",
 						Description: "Name of the resource",
+					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
 					},
 				},
 				Required: []string{"apiVersion", "kind", "name"},
@@ -97,6 +105,10 @@ func initResources(o internalk8s.Openshift) []api.ServerTool {
 					"resource": {
 						Type:        "string",
 						Description: "A JSON or YAML containing a representation of the Kubernetes resource. Should include top-level fields such as apiVersion,kind,metadata, and spec",
+					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
 					},
 				},
 				Required: []string{"resource"},
@@ -130,6 +142,10 @@ func initResources(o internalk8s.Openshift) []api.ServerTool {
 					"name": {
 						Type:        "string",
 						Description: "Name of the resource",
+					},
+					"cluster": {
+						Type:        "string",
+						Description: "Optional managed cluster name for multi-cluster operations via ACM proxy",
 					},
 				},
 				Required: []string{"apiVersion", "kind", "name"},

@@ -69,6 +69,10 @@ type MCPServerOptions struct {
 	CertificateAuthority string
 	ServerURL            string
 
+	// ACM multi-cluster options
+	ACMMode       bool
+	ACMAutoDetect bool
+
 	ConfigPath   string
 	StaticConfig *config.StaticConfig
 
@@ -130,6 +134,8 @@ func NewMCPServer(streams genericiooptions.IOStreams) *cobra.Command {
 	_ = cmd.Flags().MarkHidden("server-url")
 	cmd.Flags().StringVar(&o.CertificateAuthority, "certificate-authority", o.CertificateAuthority, "Certificate authority path to verify certificates. Optional. Only valid if require-oauth is enabled.")
 	_ = cmd.Flags().MarkHidden("certificate-authority")
+	cmd.Flags().BoolVar(&o.ACMMode, "acm-mode", o.ACMMode, "If true, enable ACM multi-cluster mode with cluster-proxy support")
+	cmd.Flags().BoolVar(&o.ACMAutoDetect, "acm-auto-detect", o.ACMAutoDetect, "If true, automatically detect ACM environment and enable multi-cluster mode")
 
 	return cmd
 }
@@ -201,6 +207,12 @@ func (m *MCPServerOptions) loadFlags(cmd *cobra.Command) {
 	}
 	if cmd.Flag("certificate-authority").Changed {
 		m.StaticConfig.CertificateAuthority = m.CertificateAuthority
+	}
+	if cmd.Flag("acm-mode").Changed {
+		m.StaticConfig.ACMMode = m.ACMMode
+	}
+	if cmd.Flag("acm-auto-detect").Changed {
+		m.StaticConfig.ACMAutoDetect = m.ACMAutoDetect
 	}
 }
 
