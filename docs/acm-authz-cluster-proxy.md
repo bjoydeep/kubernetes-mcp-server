@@ -13,7 +13,7 @@ sequenceDiagram
       R->>P: Forward with Original Bearer
       Note over P: Hub Service (port 9092)
       P->>P1: http server forwards the request
-      P1<<-A: Establish Secure Tunnel + Context. Token passed from hub to managed cluster
+      A->>P1: Establish Secure Tunnel + Context. Token passed from hub to managed cluster
       Note over A: Validates token - will pass assuming same IdP
       A->>K: API Request (with bearer token creds)
       K->>A: API Response
