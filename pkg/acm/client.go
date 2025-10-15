@@ -15,14 +15,15 @@ import (
 
 // ProxyClient handles communication with ACM cluster-proxy API
 type ProxyClient struct {
-	httpClient  *http.Client
-	serverURL   string
-	bearerToken string
+	httpClient     *http.Client
+	serverURL      string
+	bearerToken    string
+	proxyRouteHost string // Dynamically discovered cluster-proxy route
 }
 
 // NewProxyClient creates a new ACM proxy client
 func NewProxyClient(serverURL, bearerToken string) *ProxyClient {
-	return &ProxyClient{
+	client := &ProxyClient{
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
@@ -34,18 +35,28 @@ func NewProxyClient(serverURL, bearerToken string) *ProxyClient {
 		serverURL:   strings.TrimSuffix(serverURL, "/"),
 		bearerToken: bearerToken,
 	}
+
+	// Dynamically discover the cluster-proxy route
+	client.discoverProxyRoute()
+
+	return client
 }
 
 // ProxyRequest makes a request to the specified cluster via ACM proxy
 func (c *ProxyClient) ProxyRequest(ctx context.Context, cluster, apiPath string) (*http.Response, error) {
-	// Build the ACM proxy URL
-	// Format: /apis/proxy.open-cluster-management.io/v1beta1/namespaces/{cluster}/clusterstatuses/{cluster}{apiPath}
-	proxyPath := fmt.Sprintf("/apis/proxy.open-cluster-management.io/v1beta1/namespaces/%s/clusterstatuses/%s%s",
-		cluster, cluster, apiPath)
+	// Use cluster-proxy-addon-user external route for direct API access to managed clusters
+	// Format: https://<route-host>/<clusterName><apiPath>
 
-	fullURL := c.serverURL + proxyPath
+	// Use dynamically discovered cluster-proxy route
+	if c.proxyRouteHost == "" {
+		return nil, fmt.Errorf("cluster-proxy route not discovered - ensure ACM cluster-proxy addon is installed")
+	}
+
+	// Build the route-based cluster proxy URL
+	fullURL := fmt.Sprintf("https://%s/%s%s", c.proxyRouteHost, cluster, apiPath)
 
 	klog.V(3).Infof("ACM proxy request: %s", fullURL)
+	fmt.Printf("DEBUG: ACM proxy service URL: %s\n", fullURL)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", fullURL, nil)
 	if err != nil {
@@ -180,4 +191,64 @@ func (c *ProxyClient) ListManagedClusters(ctx context.Context) ([]string, error)
 	// For now, return empty list - this will be implemented when we add JSON parsing
 	klog.V(2).Info("Successfully connected to ACM managed clusters API")
 	return []string{}, nil
+}
+
+// discoverProxyRoute dynamically discovers the cluster-proxy-user route
+func (c *ProxyClient) discoverProxyRoute() {
+	// Try to get the cluster-proxy-user route from the multicluster-engine namespace
+	routeURL := c.serverURL + "/apis/route.openshift.io/v1/namespaces/multicluster-engine/routes/cluster-proxy-addon-user"
+
+	req, err := http.NewRequest("GET", routeURL, nil)
+	if err != nil {
+		klog.V(2).Infof("Failed to create route discovery request: %v", err)
+		return
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.bearerToken)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		klog.V(2).Infof("Failed to discover cluster-proxy route: %v", err)
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != 200 {
+		klog.V(2).Infof("Failed to get cluster-proxy route, status: %d", resp.StatusCode)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		klog.V(2).Infof("Failed to read route response: %v", err)
+		return
+	}
+
+	// Parse the route spec.host field from the JSON response
+	// Simple extraction - in production, would use proper JSON parsing
+	route := parseRouteHost(string(body))
+	if route != "" {
+		c.proxyRouteHost = route
+		klog.V(2).Infof("Discovered cluster-proxy route: %s", route)
+	} else {
+		klog.V(2).Info("Could not extract route host from response")
+	}
+}
+
+// parseRouteHost extracts the host from a route JSON response
+func parseRouteHost(jsonResponse string) string {
+	// Simple string parsing to extract spec.host field
+	// Looking for: "spec":{"host":"cluster-proxy-user.apps.domain.com"
+	if idx := strings.Index(jsonResponse, `"spec":`); idx != -1 {
+		specPart := jsonResponse[idx:]
+		if hostIdx := strings.Index(specPart, `"host":"`); hostIdx != -1 {
+			hostStart := hostIdx + 8 // len(`"host":"`)
+			hostPart := specPart[hostStart:]
+			if endIdx := strings.Index(hostPart, `"`); endIdx != -1 {
+				return hostPart[:endIdx]
+			}
+		}
+	}
+	return ""
 }

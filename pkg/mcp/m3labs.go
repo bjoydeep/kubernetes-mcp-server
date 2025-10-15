@@ -8,6 +8,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 
+	"github.com/containers/kubernetes-mcp-server/pkg/acm"
 	"github.com/containers/kubernetes-mcp-server/pkg/api"
 )
 
@@ -43,11 +44,27 @@ func ServerToolToM3LabsServerTool(s *Server, tools []api.ServerTool) ([]server.S
 			if err != nil {
 				return nil, err
 			}
+
+			// Initialize ACM proxy client if in ACM mode
+			var acmProxyClient interface{}
+			if s.configuration.ACMMode {
+				// Get the Kubernetes server URL and bearer token from the derived client
+				serverHost := k.GetAPIServerHost()
+				bearerToken := k.GetBearerToken()
+
+				// Create ACM proxy client with Kubernetes server URL and token
+				acmProxyClient = acm.NewProxyClient(serverHost, bearerToken)
+				fmt.Printf("DEBUG: ACM proxy client initialized with server=%s, token_length=%d\n", serverHost, len(bearerToken))
+			}
+
 			result, err := tool.Handler(api.ToolHandlerParams{
 				Context:         ctx,
 				Kubernetes:      k,
 				ToolCallRequest: request,
 				ListOutput:      s.configuration.ListOutput(),
+				// Multi-cluster support
+				IsACMMode:      s.configuration.ACMMode,
+				ACMProxyClient: acmProxyClient,
 			})
 			if err != nil {
 				return nil, err

@@ -213,3 +213,16 @@ func (k *Kubernetes) NewHelm() *helm.Helm {
 	// This is a derived Kubernetes, so it already has the Helm initialized
 	return helm.NewHelm(k.manager)
 }
+
+// GetAPIServerHost returns the Kubernetes API server host
+func (k *Kubernetes) GetAPIServerHost() string {
+	return k.manager.GetAPIServerHost()
+}
+
+// GetBearerToken returns the bearer token from the configuration
+func (k *Kubernetes) GetBearerToken() string {
+	if k.manager.cfg == nil {
+		return ""
+	}
+	return k.manager.cfg.BearerToken
+}

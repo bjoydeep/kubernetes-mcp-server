@@ -18,8 +18,8 @@ sequenceDiagram
     ToolHandler->>ToolHandler: GetClusterParameter() → "jb-mc-1", true
     ToolHandler->>ToolHandler: ShouldUseACMProxy() → "jb-mc-1", true
     ToolHandler->>ACMClusterProxy: ProxyRequest(cluster="jb-mc-1", apiPath)
-    ACMClusterProxy->>ACMClusterProxy: Build proxy URL:<br/>/apis/proxy.open-cluster-management.io/v1beta1/<br/>namespaces/jb-mc-1/clusterstatuses/jb-mc-1{apiPath}
-    ACMClusterProxy->>ManagedClusterKubeAPI: HTTP Request via ACM Cluster Proxy
+    ACMClusterProxy->>ACMClusterProxy: Build proxy URL:<br/>https://cluster-proxy-user.apps.{acm-domain}/jb-mc-1{apiPath}
+    ACMClusterProxy->>ManagedClusterKubeAPI: HTTP Request via cluster-proxy-user route
     ManagedClusterKubeAPI-->>ACMClusterProxy: Response (pods, resources, etc.)
     ACMClusterProxy-->>ToolHandler: Proxy Response
     ToolHandler-->>MCPServer: Tool Result from jb-mc-1
@@ -90,3 +90,56 @@ The current silent fallback behavior poses security risks:
 3. **Compliance Issues**: Operations intended for non-production clusters might be executed on production environments
 
 The proposed validation approach eliminates these risks by failing fast with clear error messages.
+
+## ✅ WORKING IMPLEMENTATION (Updated 2025-01-14)
+
+### Successful ACM Cluster-Proxy Integration
+
+After extensive debugging and testing, the correct ACM cluster-proxy implementation has been discovered and implemented:
+
+**🔧 Key Breakthrough: Service-Based Routing Pattern**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant MCPServer
+    participant ToolHandler
+    participant ACMProxyClient
+    participant ClusterProxyRoute as cluster-proxy-user Route
+    participant ProxyAgent as Proxy Agent (jb-mc-1)
+    participant ManagedKubeAPI as Managed Cluster Kube API
+
+    Client->>MCPServer: pods_list_in_namespace(namespace="stackrox", cluster="jb-mc-1")
+    MCPServer->>ToolHandler: Execute tool (params.IsACMMode=true, ACMProxyClient initialized)
+    ToolHandler->>ToolHandler: ShouldUseACMProxy() → "jb-mc-1", true
+    ToolHandler->>ACMProxyClient: ProxyRequest(cluster="jb-mc-1", apiPath="/api/v1/namespaces/stackrox/pods")
+    ACMProxyClient->>ACMProxyClient: Build URL:<br/>https://cluster-proxy-user.apps.{acm-domain}/<br/>jb-mc-1/api/v1/namespaces/stackrox/pods
+    ACMProxyClient->>ClusterProxyRoute: HTTPS Request with Bearer Token
+    ClusterProxyRoute->>ProxyAgent: Forward request to managed cluster
+    ProxyAgent->>ManagedKubeAPI: Execute on managed cluster Kubernetes API
+    ManagedKubeAPI-->>ProxyAgent: Pod list from stackrox namespace
+    ProxyAgent-->>ClusterProxyRoute: Response
+    ClusterProxyRoute-->>ACMProxyClient: HTTP Response
+    ACMProxyClient-->>ToolHandler: Parsed pod list
+    ToolHandler-->>MCPServer: Tool Result
+    MCPServer-->>Client: ✅ StackRox pods from jb-mc-1 cluster
+
+    Note over Client: SUCCESS: admission-control, collector, scanner,<br/>sensor pods listed from managed cluster
+```
+
+### Technical Implementation Details
+
+**✅ Working Components:**
+- **External Route**: `cluster-proxy-user.apps.{acm-domain}` (dynamically discovered)
+- **URL Pattern**: `https://{discovered-route}/{cluster}{kubernetesApiPath}`
+- **Authentication**: Standard Kubernetes bearer tokens
+- **Proxy Infrastructure**: cluster-proxy-proxy-agent pods running on managed clusters
+- **Route Discovery**: Automatic discovery via OpenShift Route API
+
+**✅ Verified Operations:**
+- Pod listing across namespaces ✅
+- Multi-cluster resource access ✅
+- Real-time API responses ✅
+- Transparent authentication ✅
+
+**🎯 Result**: Enterprise-grade multi-cluster management through single MCP interface

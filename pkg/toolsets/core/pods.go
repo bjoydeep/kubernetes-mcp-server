@@ -306,6 +306,7 @@ func podsListInAllNamespaces(params api.ToolHandlerParams) (*api.ToolCallResult,
 }
 
 func podsListInNamespace(params api.ToolHandlerParams) (*api.ToolCallResult, error) {
+	fmt.Printf("DEBUG: ===== PODS LIST IN NAMESPACE HANDLER CALLED =====\n")
 	ns := params.GetArguments()["namespace"]
 	if ns == nil {
 		return api.NewToolCallResult("", errors.New("failed to list pods in namespace, missing argument namespace")), nil
@@ -317,7 +318,24 @@ func podsListInNamespace(params api.ToolHandlerParams) (*api.ToolCallResult, err
 	if labelSelector != nil {
 		resourceListOptions.LabelSelector = labelSelector.(string)
 	}
-	ret, err := params.PodsListInNamespace(params, ns.(string), resourceListOptions)
+
+	args := params.GetArguments()
+	fmt.Printf("DEBUG: arguments = %+v\n", args)
+	fmt.Printf("DEBUG: IsACMMode = %v\n", params.IsACMMode)
+	fmt.Printf("DEBUG: ACMProxyClient = %v\n", params.ACMProxyClient)
+
+	// Check for cluster parameter and route through ACM proxy if needed
+	if cluster, shouldUse := api.ShouldUseACMProxy(params); shouldUse {
+		fmt.Printf("DEBUG: Using ACM proxy for cluster=%s in podsListInNamespace\n", cluster)
+		ret, err := params.PodsListInNamespaceThroughProxy(params.Context, cluster, ns.(string), resourceListOptions)
+		if err != nil {
+			return api.NewToolCallResult("", fmt.Errorf("failed to list pods in namespace %s via ACM proxy: %v", ns, err)), nil
+		}
+		return api.NewToolCallResult(params.ListOutput.PrintObj(ret)), nil
+	}
+
+	fmt.Printf("DEBUG: Using direct Kubernetes client in podsListInNamespace\n")
+	ret, err := params.PodsListInNamespace(params.Context, ns.(string), resourceListOptions)
 	if err != nil {
 		return api.NewToolCallResult("", fmt.Errorf("failed to list pods in namespace %s: %v", ns, err)), nil
 	}
